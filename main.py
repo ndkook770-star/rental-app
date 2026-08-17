@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException, File, UploadFile, Form
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, RedirectResponse
-
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from datetime import date
@@ -84,20 +83,16 @@ class ReviewCreate(BaseModel):
     rating: int
     comment: str
 
-@app.get("/", response_class=RedirectResponse)
-def root():
-    return RedirectResponse(url="/app")
-
-@app.get("/app", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse)
 def get_ui():
     return """
     <!DOCTYPE html>
     <html dir="rtl" lang="he">
     <head>
-    <link rel="manifest" href="/manifest.json">
+        <link rel="manifest" href="/manifest.json">
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>אפליקציית השכרה מלאה</title>
+        <title>RentX - השכרת ציוד</title>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <style>
@@ -457,7 +452,7 @@ def get_manifest():
         "name": "RentX - השכרת ציוד",
         "short_name": "RentX",
         "description": "RentX App",
-        "start_url": "/app",
+        "start_url": "/",
         "display": "standalone",
         "background_color": "#ffffff",
         "theme_color": "#ffffff",
