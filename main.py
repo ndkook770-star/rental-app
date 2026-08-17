@@ -90,6 +90,7 @@ def get_ui():
     <!DOCTYPE html>
     <html dir="rtl" lang="he">
     <head>
+    <link rel="manifest" href="/manifest.json">
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>אפליקציית השכרה מלאה</title>
