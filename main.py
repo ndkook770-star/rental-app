@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, File, UploadFile, Form
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, RedirectResponse
 
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -83,6 +83,10 @@ class ReviewCreate(BaseModel):
     reviewer_name: str
     rating: int
     comment: str
+
+@app.get("/", response_class=RedirectResponse)
+def root():
+    return RedirectResponse(url="/app")
 
 @app.get("/app", response_class=HTMLResponse)
 def get_ui():
@@ -445,13 +449,14 @@ def get_reviews(item_id: int):
     cursor.execute("SELECT reviewer_name, rating, comment FROM reviews WHERE item_id = ?", (item_id,))
     rows = cursor.fetchall()
     conn.close()
-    return [{"reviewer_name": r[0], "rating": r[1], "comment": r[2]for r in rows]
+    return [{"reviewer_name": r[0], "rating": r[1], "comment": r[2]} for r in rows]
+
 @app.get("/manifest.json")
 def get_manifest():
     return JSONResponse(content={
         "name": "RentX - השכרת ציוד",
         "short_name": "RentX",
-                "description": "RentX App",
+        "description": "RentX App",
         "start_url": "/app",
         "display": "standalone",
         "background_color": "#ffffff",
@@ -464,8 +469,10 @@ def get_manifest():
             }
         ]
     })
+
 @app.get("/icon.png")
 def get_icon():
     return FileResponse("icon.png")
+
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
