@@ -451,6 +451,7 @@ def get_manifest():
     return JSONResponse(content={
         "name": "RentX - השכרת ציוד",
         "short_name": "RentX",
+                "description": "RentX App",
         "start_url": "/app",
         "display": "standalone",
         "background_color": "#ffffff",
