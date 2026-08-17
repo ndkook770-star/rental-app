@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from datetime import date
@@ -83,224 +84,282 @@ class ReviewCreate(BaseModel):
     rating: int
     comment: str
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/app", response_class=HTMLResponse)
 def get_ui():
     return """
-    <!DOCTYPE html>
-    <html dir="rtl" lang="he">
-    <head>
-        <link rel="manifest" href="/manifest.json">
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>RentX - השכרת ציוד</title>
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <style>
-            body { font-family: system-ui, sans-serif; background: #f4f6f8; margin: 0; padding: 15px; }
-            .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 15px; }
-            h2, h3 { margin-top: 0; color: #333; }
-            input, button, select, textarea { width: 100%; padding: 10px; margin: 5px 0 10px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
-            button { background: #2563eb; color: white; border: none; font-weight: bold; cursor: pointer; }
-            .btn-book { background: #16a34a; margin-top: 10px; }
-            .btn-approve { background: #16a34a; width: 48%; display: inline-block; }
-            .btn-reject { background: #dc2626; width: 48%; display: inline-block; }
-            #map { height: 250px; width: 100%; border-radius: 12px; margin-bottom: 15px; }
-            .badge { background: #fef08a; padding: 4px 8px; border-radius: 6px; font-size: 12px; }
-            .review-box { background: #f9fafb; padding: 8px; border-radius: 8px; margin-top: 6px; border: 1px solid #e5e7eb; font-size: 13px; }
-            .item-img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
-        </style>
-    </head>
-    <body>
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RentX - השכרת ציוד</title>
+    
+    <!-- פונט מודרני מגוגל -->
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS למפה -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --radius: 16px;
+            --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Assistant', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding-bottom: 40px;
+        }
+
+        /* סרגל עליון */
+        .navbar {
+            background: var(--card-bg);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* מסך בחירת תפקיד */
+        .hero-selection {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            border-radius: var(--radius);
+            padding: 24px 20px;
+            color: white;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .hero-selection h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .hero-selection p {
+            font-size: 15px;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .role-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn-role {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 14px 10px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: all 0.2s ease;
+        }
+
+        .btn-role:hover, .btn-role.active {
+            background: white;
+            color: var(--primary);
+            border-color: white;
+        }
+
+        /* כרטיסיות עבודה */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* אלמנטים של המפה */
+        #map {
+            height: 250px;
+            width: 100%;
+            border-radius: 12px;
+            z-index: 1;
+        }
+
+        /* טפסים ושדות קלט */
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            background: #f8fafc;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            background: white;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">⚡ RentX</div>
+    </nav>
+
+    <div class="container">
+        
+        <!-- בחירת תפקיד בכניסה -->
+        <section class="hero-selection">
+            <h1>ברוכים הבאים ל-RentX</h1>
+            <p>מה ברצונך לעשות היום?</p>
+            <div class="role-buttons">
+                <button class="btn-role active" onclick="selectRole('renter')">🔍 אני רוצה לשכור</button>
+                <button class="btn-role" onclick="selectRole('lessor')">➕ אני רוצה להשכיר</button>
+            </div>
+        </section>
+
+        <!-- מפה (תצוגה לשוכר ולמשכיר) -->
         <div class="card">
-            <h2>🗺️ מפת ציוד בסביבה</h2>
+            <div class="card-title">🗺️ מפת ציוד ועמדות בסביבה</div>
             <div id="map"></div>
         </div>
 
-        <div class="card">
-            <h2>🔍 חיפוש וסינון ציוד</h2>
-            <input id="search_text" placeholder="חפש לפי שם פריט...">
-            <select id="search_category">
-                <option value="">כל הקטגוריות</option>
-                <option value="סאונד">סאונד והגברה</option>
-                <option value="צילום">צילום ווידאו</option>
-                <option value="קמפינג">קמפינג וטיולים</option>
-            </select>
-            <button onclick="searchItems()">סינון וחיפוש ציוד</button>
+        <!-- אזור חיפוש (עבור שוכר) -->
+        <div class="card" id="searchSection">
+            <div class="card-title">🔍 חיפוש וסינון פריטים</div>
+            <div class="form-group">
+                <input type="text" placeholder="מה תרצה לשכור? (ציוד, עמדה...)">
+            </div>
+            <div class="form-group">
+                <select>
+                    <option value="">כל הקטגוריות</option>
+                    <option value="equipment">ציוד מקצועי</option>
+                    <option value="workspace">עמדת עבודה / חדר</option>
+                </select>
+            </div>
+            <button class="btn-primary">חפש פריטים</button>
         </div>
 
-        <div class="card">
-            <h2>➕ העלאת ציוד להשכרה</h2>
-            <form id="uploadForm">
-                <input name="title" placeholder="שם הציוד (למשל: רמקול מוגבר)" required>
-                <input name="category" placeholder="קטגוריה (סאונד/צילום/קמפינג)" required>
-                <input name="price_per_day" type="number" placeholder="מחיר ליום (₪)" required>
-                <input name="deposit_amount" type="number" placeholder="גובה פיקדון (₪)" required>
-                <input name="latitude" type="number" step="any" value="32.0853" required>
-                <input name="longitude" type="number" step="any" value="34.7818" required>
-                <label>תמונת הציוד:</label>
-                <input type="file" name="file" accept="image/*">
-                <button type="button" onclick="addItem()">פרסם ציוד</button>
-            </form>
+        <!-- אזור העלאת פריט (עבור משכיר) -->
+        <div class="card" id="uploadSection" style="display: none;">
+            <div class="card-title">📦 העלאת ציוד/עמדה להשכרה</div>
+            <div class="form-group">
+                <label>שם הפריט / העמדה</label>
+                <input type="text" placeholder="לדוגמה: עמדת עבודה / מכשיר לייזר">
+            </div>
+            <div class="form-group">
+                <label>מחיר ליום (₪)</label>
+                <input type="number" placeholder="00">
+            </div>
+            <button class="btn-primary">פרסם להשכרה</button>
         </div>
 
-        <div class="card">
-            <h2>📋 בקשות השכרה שממתינות לאישור</h2>
-            <button onclick="loadBookings()">רענן בקשות</button>
-            <div id="bookings-list"></div>
-        </div>
+    </div>
 
-        <div id="results"></div>
+    <!-- Leaflet JS למפות -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // אתחול המפה עם ספק תקין שמנע את שגיאת 403
+        const map = L.map('map').setView([32.0853, 34.7818], 12);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            attribution: '&copy; CartoDB'
+        }).addTo(map);
 
-        <script>
-            let map = L.map('map').setView([32.0853, 34.7818], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            let markers = [];
-
-            async function addItem() {
-                const form = document.getElementById('uploadForm');
-                const formData = new FormData(form);
-                formData.append('owner_id', '101');
-
-                const res = await fetch('/items/', {
-                    method: 'POST',
-                    body: formData
-                });
-                if(res.ok) { alert('הציוד פורסם בהצלחה!'); form.reset(); searchItems(); }
+        // החלפת מצבים בין שוכר למשכיר
+        function selectRole(role) {
+            document.querySelectorAll('.btn-role').forEach(btn => btn.classList.remove('active'));
+            
+            if (role === 'renter') {
+                event.target.classList.add('active');
+                document.getElementById('searchSection').style.display = 'block';
+                document.getElementById('uploadSection').style.display = 'none';
+            } else {
+                event.target.classList.add('active');
+                document.getElementById('searchSection').style.display = 'none';
+                document.getElementById('uploadSection').style.display = 'block';
             }
-
-            async function searchItems() {
-                const query = document.getElementById('search_text').value;
-                const cat = document.getElementById('search_category').value;
-                
-                let url = `/items/search/?user_lat=32.0853&user_lon=34.7818&max_distance_km=20`;
-                if(query) url += `&query=${encodeURIComponent(query)}`;
-                if(cat) url += `&category=${encodeURIComponent(cat)}`;
-
-                const res = await fetch(url);
-                const data = await res.json();
-                
-                markers.forEach(m => map.removeLayer(m));
-                markers = [];
-
-                const container = document.getElementById('results');
-                container.innerHTML = '';
-
-                for(const item of data) {
-                    let marker = L.marker([item.latitude, item.longitude]).addTo(map)
-                        .bindPopup(`<b>${item.title}</b><br>${item.price_per_day} ₪ / יום`);
-                    markers.push(marker);
-
-                    const revRes = await fetch(`/reviews/${item.id}`);
-                    const reviews = await revRes.json();
-                    let reviewsHTML = '';
-                    reviews.forEach(r => {
-                        reviewsHTML += `<div class="review-box">⭐ ${r.rating}/5 - <b>${r.reviewer_name}</b>: ${r.comment}</div>`;
-                    });
-
-                    const imgTag = item.image_url ? `<img src="${item.image_url}" class="item-img">` : '';
-
-                    container.innerHTML += `
-                        <div class="card">
-                            ${imgTag}
-                            <h3>${item.title}</h3>
-                            <p>🏷️ קטגוריה: ${item.category}</p>
-                            <p>💰 מחיר: ${item.price_per_day} ₪ / יום (פיקדון: ${item.deposit_amount} ₪)</p>
-                            <p>📍 מרחק ממך: <b>${item.distance_km} ק"מ</b></p>
-                            <hr>
-                            <label>תאריך התחלה:</label>
-                            <input type="date" id="start_${item.id}" value="2026-08-20">
-                            <label>תאריך סיום:</label>
-                            <input type="date" id="end_${item.id}" value="2026-08-22">
-                            <button class="btn-book" onclick="bookItem(${item.id})">הזמן ציוד זה</button>
-                            
-                            <hr>
-                            <h4>💬 חוות דעת ודירוגים</h4>
-                            ${reviewsHTML || '<p style="font-size:12px; color:#666;">אין עדיין ביקורות לפריט זה.</p>'}
-                            
-                            <input id="rev_name_${item.id}" placeholder="שמך">
-                            <select id="rev_rate_${item.id}">
-                                <option value="5">⭐⭐⭐⭐⭐ (5)</option>
-                                <option value="4">⭐⭐⭐⭐ (4)</option>
-                                <option value="3">⭐⭐⭐ (3)</option>
-                            </select>
-                            <input id="rev_comment_${item.id}" placeholder="כתוב ביקורת...">
-                            <button style="background:#4b5563;" onclick="addReview(${item.id})">הוסף דירוג</button>
-                        </div>
-                    `;
-                }
-            }
-
-            async function addReview(itemId) {
-                const review = {
-                    item_id: itemId,
-                    reviewer_name: document.getElementById(`rev_name_${itemId}`).value,
-                    rating: parseInt(document.getElementById(`rev_rate_${itemId}`).value),
-                    comment: document.getElementById(`rev_comment_${itemId}`).value
-                };
-                const res = await fetch('/reviews/', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(review)
-                });
-                if(res.ok) { alert('הביקורת נוספה!'); searchItems(); }
-            }
-
-            async function bookItem(itemId) {
-                const booking = {
-                    item_id: itemId,
-                    renter_id: 202,
-                    start_date: document.getElementById(`start_${itemId}`).value,
-                    end_date: document.getElementById(`end_${itemId}`).value
-                };
-
-                const res = await fetch('/bookings/', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(booking)
-                });
-                const data = await res.json();
-                if(res.ok) {
-                    alert(`הבקשה נשלחה למשכיר!\\nסה"כ לתשלום: ${data.total_price} ₪\\nפיקדון נעול: ${data.deposit_hold} ₪`);
-                    loadBookings();
-                }
-            }
-
-            async function loadBookings() {
-                const res = await fetch('/bookings/');
-                const data = await res.json();
-                const container = document.getElementById('bookings-list');
-                container.innerHTML = '';
-                data.forEach(b => {
-                    container.innerHTML += `
-                        <div style="border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
-                            <p><b>הזמנה #${b.id}</b> | פריט #${b.item_id}</p>
-                            <p>📅 מתאריך: ${b.start_date} עד ${b.end_date}</p>
-                            <p>💵 סה"כ לתשלום: ${b.total_price} ₪ (עמלה: ${b.platform_fee} ₪)</p>
-                            <p>🔒 פיקדון נעול: ${b.deposit_hold} ₪</p>
-                            <p>סטטוס: <span class="badge">${b.status}</span></p>
-                            ${b.status === 'pending_approval' ? `
-                                <button class="btn-approve" onclick="updateStatus(${b.id}, 'approved')">אישור</button>
-                                <button class="btn-reject" onclick="updateStatus(${b.id}, 'rejected')">דחייה</button>
-                            ` : ''}
-                        </div>
-                    `;
-                });
-            }
-
-            async function updateStatus(bookingId, status) {
-                const res = await fetch(`/bookings/${bookingId}/status`, {
-                    method: 'PUT',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ status: status })
-                });
-                if(res.ok) { loadBookings(); }
-            }
-
-            searchItems();
-            loadBookings();
-        </script>
-    </body>
-    </html>
+        }
+    </script>
+</body>
+</html>
     """
 
 @app.post("/items/")
@@ -444,33 +503,27 @@ def get_reviews(item_id: int):
     cursor.execute("SELECT reviewer_name, rating, comment FROM reviews WHERE item_id = ?", (item_id,))
     rows = cursor.fetchall()
     conn.close()
-    return [{"reviewer_name": r[0], "rating": r[1], "comment": r[2]} for r in rows]
-
+    return [{"reviewer_name": r[0], "rating": r[1], "comment": r[2]for r in rows]
 @app.get("/manifest.json")
 def get_manifest():
     return JSONResponse(content={
         "name": "RentX - השכרת ציוד",
         "short_name": "RentX",
-        "description": "אפליקציה מתקדמת להשכרת ציוד בסביבה הקרובה",
-        "start_url": "/",
-        "scope": "/",
+                "description": "RentX App",
+        "start_url": "/app",
         "display": "standalone",
         "background_color": "#ffffff",
-        "theme_color": "#2563eb",
-        "orientation": "portrait",
+        "theme_color": "#ffffff",
         "icons": [
             {
                 "src": "/icon.png",
                 "sizes": "512x512",
-                "type": "image/png",
-                "purpose": "any maskable"
+                "type": "image/png"
             }
         ]
     })
-
 @app.get("/icon.png")
 def get_icon():
     return FileResponse("icon.png")
-
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
